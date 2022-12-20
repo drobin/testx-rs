@@ -28,6 +28,7 @@ authors = ["Robin Doer <robin@robind.de>"]
 description = "An extended Rust testcase"
 repository = "https://github.com/drobin/testx-rs.git"
 license = "MIT"
+readme = "README.md"
 
 [dependencies]
 syn = { version = "1.0.107", features=[ "full" ] }
