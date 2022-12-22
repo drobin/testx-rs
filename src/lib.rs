@@ -30,6 +30,14 @@
 //!   `cargo-test`.
 //! * Support for a test preparation function.
 //!
+//! To use it, put the following line into the `[dev-dependencies]` section of
+//! your `Cargo.toml`:
+//!
+//! ```toml
+//! [dev-dependencies]
+//! testx = "0.1.1"
+//! ```
+//!
 //! ## Create a `testx` testcase
 //!
 //! Mark the testcase with `#[testx]`. Calling `cargo test` will execute the

@@ -56,5 +56,5 @@ Put the following line into the `[dev-dependencies]` section of your `Cargo.toml
 
 ```toml
 [dev-dependencies]
-testx = "0.1.0"
+testx = "0.1.1"
 ```
