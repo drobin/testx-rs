@@ -32,4 +32,10 @@ fn sample_no_setup() {
     assert_eq!(1, 1);
 }
 
+#[testx]
+#[should_panic(expected = "some message")]
+fn sample_panic() {
+    panic!("some message");
+}
+
 fn main() {}

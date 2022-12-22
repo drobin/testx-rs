@@ -78,12 +78,14 @@
 //! }
 //!
 //! #[testx]
-//! pub fn sample(num: u32) {
+//! fn sample(num: u32) {
 //!     assert_eq!(num, 4711);
 //! }
 //! ```
 //!
-//! If more than one argument is required, put them all into a tuple:
+//! If more than one argument is required, the `setup` function should collect
+//! them into a tuple. The `testx` macro will disassemble them into several
+//! arguments.
 //!
 //! ```rust
 //! use testx::testx;
@@ -93,9 +95,7 @@
 //! }
 //!
 //! #[testx]
-//! pub fn sample(data: (u32, String)) {
-//!     let (num, str) = data;
-//!
+//! fn sample(num: u32, str: String) {
 //!     assert_eq!(num, 4711);
 //!     assert_eq!(str, "foo");
 //! }
@@ -123,17 +123,17 @@
 //! }
 //!
 //! #[testx(setup = "setup_666")]
-//! pub fn sample_custom_str(num: u32) {
+//! fn sample_custom_str(num: u32) {
 //!     assert_eq!(num, 666);
 //! }
 //!
 //! #[testx(setup = setup_666)]
-//! pub fn sample_custom_path(num: u32) {
+//! fn sample_custom_path(num: u32) {
 //!     assert_eq!(num, 666);
 //! }
 //!
 //! #[testx(setup = self::setup_666)]
-//! pub fn sample_custom_path2(num: u32) {
+//! fn sample_custom_path2(num: u32) {
 //!     assert_eq!(num, 666);
 //! }
 //! ```
@@ -142,15 +142,11 @@
 mod attr;
 
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::parse_macro_input;
+use quote::{format_ident, quote};
+use syn::{parse_macro_input, Ident};
 use syn::{ItemFn, Visibility};
 
 use crate::attr::AttributeList;
-
-fn has_arg(func: &ItemFn) -> bool {
-    func.sig.inputs.iter().nth(0).is_some()
-}
 
 fn to_inner_func(func: &ItemFn) -> ItemFn {
     let ident_new = format!("{}_inner", func.sig.ident);
@@ -181,9 +177,16 @@ pub fn testx(attr: TokenStream, item: TokenStream) -> TokenStream {
     let setup_fn = meta.setup_func();
 
     // Attributes of the test function.
-    let fn_arg = has_arg(&test_fn);
+    let fn_arg = test_fn.sig.inputs.iter().nth(0).is_some();
     let fn_attrs = &test_fn.attrs;
     let fn_ident = &test_fn.sig.ident;
+    let fn_inputs = test_fn
+        .sig
+        .inputs
+        .iter()
+        .enumerate()
+        .map(|(idx, _)| format_ident!("arg{}", idx))
+        .collect::<Vec<Ident>>();
     let inner_fn_ident = &inner_fn.sig.ident;
 
     // you need to call setup, if
@@ -193,7 +196,7 @@ pub fn testx(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let setup_call = if need_setup {
         quote! {
-            let sr = #setup_fn();
+            let (#(#fn_inputs),*) = #setup_fn();
         }
     } else {
         quote! {}
@@ -201,7 +204,7 @@ pub fn testx(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let inner_call = if need_setup {
         quote! {
-            #inner_fn_ident(sr);
+            #inner_fn_ident(#(#fn_inputs),*);
         }
     } else {
         quote! {
