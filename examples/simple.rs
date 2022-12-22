@@ -27,4 +27,9 @@ fn sample() {
     assert_eq!(1, 1);
 }
 
+#[testx(no_setup)]
+fn sample_no_setup() {
+    assert_eq!(1, 1);
+}
+
 fn main() {}

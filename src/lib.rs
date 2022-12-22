@@ -95,11 +95,50 @@
 //!
 //! **Note**: For a testcase without an argument, the `setup` function will not
 //! be executed!
+//!
+//! By default a function called `setup` is called for each testcase. If you
+//! need another function, assign a `setup` attribute with the name of the
+//! setup function to the macro. The function name can be either a string or
+//! the path to the function. Assign the `no_setup` attribute if you want to
+//! explicity mark a testcase to have no setup function.
+//!
+//! ```rust
+//! use testx::testx;
+//!
+//! fn setup_666() -> u32 {
+//!     666
+//! }
+//!
+//! #[testx(no_setup)]
+//! fn sample_no_setup() {
+//!     assert_eq!(1, 1);
+//! }
+//!
+//! #[testx(setup = "setup_666")]
+//! pub fn sample_custom_str(num: u32) {
+//!     assert_eq!(num, 666);
+//! }
+//!
+//! #[testx(setup = setup_666)]
+//! pub fn sample_custom_path(num: u32) {
+//!     assert_eq!(num, 666);
+//! }
+//!
+//! #[testx(setup = self::setup_666)]
+//! pub fn sample_custom_path2(num: u32) {
+//!     assert_eq!(num, 666);
+//! }
+//! ```
+//!
+
+mod attr;
 
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
 use syn::{ItemFn, Visibility};
+
+use crate::attr::AttributeList;
 
 fn has_arg(func: &ItemFn) -> bool {
     func.sig.inputs.iter().nth(0).is_some()
@@ -122,24 +161,37 @@ fn to_inner_func(func: &ItemFn) -> ItemFn {
 /// Refer to the [module documentation](self) for details about using the `testx`
 /// macro.
 #[proc_macro_attribute]
-pub fn testx(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn testx(attr: TokenStream, item: TokenStream) -> TokenStream {
+    // Parse the input.
+    let meta = parse_macro_input!(attr as AttributeList);
     let test_fn = parse_macro_input!(item as syn::ItemFn);
+
+    // The inner function is based on the test-function and contains the test logic.
     let inner_fn = to_inner_func(&test_fn);
 
+    // The configured setup function.
+    let setup_fn = meta.setup_func();
+
+    // Attributes of the test function.
     let fn_arg = has_arg(&test_fn);
     let fn_attrs = &test_fn.attrs;
     let fn_ident = &test_fn.sig.ident;
     let inner_fn_ident = &inner_fn.sig.ident;
 
-    let setup_call = if fn_arg {
+    // you need to call setup, if
+    // * you have an configured setup function
+    // * the test-function has an argument (where the setup result is passed to)
+    let need_setup = setup_fn.is_some() && fn_arg;
+
+    let setup_call = if need_setup {
         quote! {
-            let sr = setup();
+            let sr = #setup_fn();
         }
     } else {
         quote! {}
     };
 
-    let inner_call = if fn_arg {
+    let inner_call = if need_setup {
         quote! {
             #inner_fn_ident(sr);
         }

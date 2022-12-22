@@ -27,9 +27,29 @@ fn setup() -> u32 {
     4711
 }
 
+#[allow(dead_code)]
+fn setup_666() -> u32 {
+    666
+}
+
 #[testx]
 pub fn sample(num: u32) {
     assert_eq!(num, 4711);
+}
+
+#[testx(setup = "setup_666")]
+pub fn sample_custom_str(num: u32) {
+    assert_eq!(num, 666);
+}
+
+#[testx(setup = setup_666)]
+pub fn sample_custom_path(num: u32) {
+    assert_eq!(num, 666);
+}
+
+#[testx(setup = self::setup_666)]
+pub fn sample_custom_path2(num: u32) {
+    assert_eq!(num, 666);
 }
 
 fn main() {}
