@@ -35,7 +35,7 @@
 //!
 //! ```toml
 //! [dev-dependencies]
-//! testx = "0.1.1"
+//! testx = "0.1.2"
 //! ```
 //!
 //! ## Create a `testx` testcase
